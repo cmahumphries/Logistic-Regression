@@ -1,0 +1,65 @@
+---
+title: "Logistic Regression"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exercise: logistic regression
+
+Using the NH11 data set:
+
+1. Use glm to conduct a logistic regression to predict ever worked (everwrk) using age (age_p) and marital status (r_maritl).
+
+2. Predict the probability of working for each level of marital status.
+
+Note that the data is not perfectly clean and ready to be modeled. You will need to clean up at least some of the variables before fitting the model.
+
+### Part One
+
+Load data, create a new data frame only with variables of interest, examine the data
+```{r}
+NH11 <- readRDS("NatHealth2011.rds")
+NH11.subset <- NH11[c("everwrk", "age_p", "r_maritl")]
+summary(NH11.subset)
+```
+
+
+The everwrk variable has many NA's, and other values besides Yes and No.
+
+Create a 'training' data set to build our model by removing all other values besides Yes and No.
+Remove unused factors to prevent errors in modelling.
+```{r}
+train <- subset(NH11.subset, everwrk == "1 Yes" | everwrk == "2 No")
+train$everwrk <- factor(train$everwrk)
+train$r_maritl <- factor(train$r_maritl)
+summary(train)
+```
+
+
+Use glm to conduct a logistic regression to predict ever worked (everwrk) using age (age_p) and marital status (r_maritl)
+```{r}
+trainLog <- glm(everwrk ~ age_p + r_maritl, data = train, family = binomial)
+summary(trainLog)
+```
+
+Age, Widowed, Divorced, Never Married and Living with Partner are all statistically significant predictors of ever worked. However, only Widowed and Never Married show a postive correlation.
+
+
+
+###Part Two
+
+Predict the probability of working for each level of marital status.
+
+Create a dataset with predictors set at each level of marital status, predict probability of working at each level.
+```{r}
+predictData <- with(train, expand.grid(r_maritl = levels(train$r_maritl), age_p = mean(age_p)))
+
+cbind(predictData, predict(trainLog, type = "response", se.fit = TRUE, interval = "confidence",
+                           newdata = predictData))
+```
+
+
+Based on this model, the probability of working for each level of marital status ranges between 7.2 % and 19.4%
